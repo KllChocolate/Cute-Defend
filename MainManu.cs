@@ -21,6 +21,7 @@ public void PlayGame()
     public void PlayAgain() 
     {
         SceneManager.LoadScene("SceneGame");
+        Time.timeScale = 1;
     }
     public void Resume()
     {

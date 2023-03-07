@@ -6,13 +6,13 @@ public class KingStatus : MonoBehaviour
 {
     public static KingStatus instance;
 
-    public int health = 1000;
-    public int maxHealth;
+    public int maxHealth = 1000;
     public int currentHealth;
     public GameObject gameOverUI;
     private Animator animator;
     public HealthBar healthbar;
 
+    private AudioSource audioSource;
     public AudioClip HitSound;
     public AudioClip DeathSound;
     public AudioClip gameover;
@@ -23,8 +23,8 @@ public class KingStatus : MonoBehaviour
     }
     public void Start()
     {
+        audioSource = GetComponent<AudioSource>();
         animator = GetComponentInChildren<Animator>();
-        maxHealth = SetMaxHealthFormHealthlevel();
         currentHealth = maxHealth;
         healthbar.SetMaxHealth(maxHealth);
     }
@@ -32,12 +32,6 @@ public class KingStatus : MonoBehaviour
     {
         healthbar.SetCurrentHealth(currentHealth);
 
-    }
-
-    private int SetMaxHealthFormHealthlevel()
-    {
-        maxHealth = health;
-        return maxHealth;
     }
 
     public void TakeDamage(int damage)
@@ -48,27 +42,24 @@ public class KingStatus : MonoBehaviour
             {
                 animator.SetTrigger("Death");
                 GetComponent<Collider>().enabled = false;
-                AudioSource ac = GetComponent<AudioSource>();
-                ac.PlayOneShot(DeathSound);
+                audioSource.PlayOneShot(DeathSound);
                 StartCoroutine(die());
 
             }
             else
             {
                 animator.SetTrigger("Hit");
-                AudioSource ac = GetComponent<AudioSource>();
-                ac.PlayOneShot(HitSound);
+                audioSource.PlayOneShot(HitSound);
             }
             healthbar.SetCurrentHealth(currentHealth);
 
     }
     public IEnumerator die()
     {
-        yield return new WaitForSeconds(3);
+        yield return new WaitForSeconds(1);
         Time.timeScale = 0;
         gameOverUI.SetActive(true);
-        AudioSource ac = GetComponent<AudioSource>();
-        ac.PlayOneShot(gameover);
+        audioSource.PlayOneShot(gameover);
     }
 
 }

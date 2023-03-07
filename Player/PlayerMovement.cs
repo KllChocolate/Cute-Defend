@@ -16,17 +16,13 @@ public class PlayerMovement : MonoBehaviour
     private AudioSource audioSource;
     public GameObject areaAttack;
 
-
-
     [Header("Attack")]
     public bool canAttack = true;
     public float AttackCooldown = 0.5f;
     public bool isAttacking = false;
     public bool isDefend = false;
 
-
     [Header("Jump")]
-
     public bool isJumping = false;
     public bool isGrounded = true;
 
@@ -57,6 +53,7 @@ public class PlayerMovement : MonoBehaviour
     private Animator animator;
     private CharacterController character;
     public GameObject completeUI;
+    private bool Win = false;
     private void Awake()
     {
         instance = this;
@@ -216,6 +213,12 @@ public class PlayerMovement : MonoBehaviour
             animator.SetTrigger("Victory");
             StartCoroutine(complete());
             audioSource.PlayOneShot(winSound);
+            Win = true;
+        }
+        if(Win)
+        {
+            audioSource.PlayOneShot(winSound);
+            Win = false;
         }
         
     }
@@ -230,7 +233,7 @@ public class PlayerMovement : MonoBehaviour
     //â¨ÁµÕ
     private void Attack()
     {
-        areaAttack.SetActive(true);
+
         isAttacking = true;
         canAttack = false;
         animator.SetTrigger("Attack");
@@ -240,9 +243,11 @@ public class PlayerMovement : MonoBehaviour
     }
     private IEnumerator CooldownAttack()
     {
+        yield return new WaitForSeconds(0.2f);
+        areaAttack.SetActive(true);
+        isAttacking = false;
         yield return new WaitForSeconds(0.1f);
         areaAttack.SetActive(false);
-        isAttacking = false;
         yield return new WaitForSeconds(AttackCooldown);
         canAttack = true;
     }

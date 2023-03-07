@@ -22,18 +22,19 @@ public class AIMutiTarget : MonoBehaviour
     private NavMeshAgent agent;
     private Transform target;
     private Transform player;
-    private Transform guard;
-    public LayerMask whatIsTarget, whatIsPlayer, whatIsGuard;
+    public LayerMask whatIsTarget, whatIsPlayer;
 
     //Attacking
     public float cooldown;
     public bool readyAttack = true;
     public bool isAttacking = false;
     public bool isDead = false;
+    public bool isAllEnemiesDead = false;
 
     //States
-    public float sightPlayerRange, sightTargetRange, sightGuardRange, attackRange;
-    public bool targetInSightRange, targetInAttackRange, playerInSightRange, playerInAttackRange,guardInSightRange, guardInAttackRange;
+    public float sightPlayerRange, sightTargetRange, attackRange;
+    public float sightGuardRange = 99;
+    public bool targetInSightRange, targetInAttackRange, playerInSightRange, playerInAttackRange;
     public static AIMutiTarget instance;
 
     private void Awake()
@@ -45,7 +46,6 @@ public class AIMutiTarget : MonoBehaviour
         EnemyAreaAttack.SetActive(false);
         currentHealth = maxHealth;
         healthbar.SetMaxHealth(maxHealth);
-        guard = GameObject.Find("Guard").transform;
         target = GameObject.Find("Slime King").transform;
         player = GameObject.Find("Player").transform;
         agent = GetComponent<NavMeshAgent>();
@@ -54,51 +54,97 @@ public class AIMutiTarget : MonoBehaviour
     }
     private void Update()
     {
+        healthbar.SetCurrentHealth(currentHealth);
+
+        targetInSightRange = Physics.CheckSphere(transform.position, sightTargetRange, whatIsTarget);
+        targetInAttackRange = Physics.CheckSphere(transform.position, attackRange, whatIsTarget);
+        playerInSightRange = Physics.CheckSphere(transform.position, sightPlayerRange, whatIsPlayer);
+        playerInAttackRange = Physics.CheckSphere(transform.position, attackRange, whatIsPlayer);
+
         if (!isDead)
         {
-            healthbar.SetCurrentHealth(currentHealth);
+            GameObject[] enemies = GameObject.FindGameObjectsWithTag("Guard");
+            List<GameObject> enemiesInRange = new List<GameObject>();
 
-            targetInSightRange = Physics.CheckSphere(transform.position, sightTargetRange, whatIsTarget);
-            targetInAttackRange = Physics.CheckSphere(transform.position, attackRange, whatIsTarget);
-            guardInSightRange = Physics.CheckSphere(transform.position, sightGuardRange, whatIsGuard);
-            guardInAttackRange = Physics.CheckSphere(transform.position, attackRange, whatIsGuard);
-            playerInSightRange = Physics.CheckSphere(transform.position, sightPlayerRange, whatIsPlayer);
-            playerInAttackRange = Physics.CheckSphere(transform.position, attackRange, whatIsPlayer);
+            foreach (GameObject enemy in enemies)
+            {
+                float distanceToEnemy = Vector3.Distance(transform.position, enemy.transform.position);
+                if (distanceToEnemy < sightGuardRange)
+                {
+                    enemiesInRange.Add(enemy);
+                }
+            }
+            if (enemiesInRange.Count > 0 && !playerInSightRange)//ถ้ามากกว่า 0 ตัว
+            {
+                GameObject closestEnemy = enemiesInRange[0];
+                float closestDistance = Vector3.Distance(transform.position, closestEnemy.transform.position);
+                foreach (GameObject enemy in enemiesInRange)
+                {
+                    if (enemy.CompareTag("Guard") && enemy.activeSelf && !enemy.CompareTag("Dead"))
+                    {
+                        float distance = Vector3.Distance(transform.position, enemy.transform.position);
+                        if (distance < closestDistance)
+                        {
+                            closestEnemy = enemy;
+                            closestDistance = distance;
+                        }
+                    }
+                }
 
-            if (targetInSightRange && !guardInSightRange && !playerInSightRange && !targetInAttackRange)
-            {
-                Chase(target);
+                if (closestDistance > attackRange)
+                {
+                    agent.SetDestination(closestEnemy.transform.position);
+                    animator.SetBool("Run", true);
+                }
+                else if (closestDistance < attackRange)
+                {
+                    if (readyAttack)
+                    {
+                        agent.SetDestination(closestEnemy.transform.position);
+                        animator.SetBool("Run", false);
+                        attack(gameObject);
+                        transform.LookAt(closestEnemy.transform);
+                    }
+                }
+                else
+                {
+                    agent.SetDestination(closestEnemy.transform.position);
+                    animator.SetBool("Run", false);
+                    transform.LookAt(closestEnemy.transform);
+                }
+                
             }
-            if (targetInAttackRange && readyAttack)
+            if (isAllEnemiesDead && targetInSightRange)
             {
-                Attack();
+                if (targetInSightRange && !playerInSightRange && !targetInAttackRange)
+                {
+                    Chase(target);
+                }
+                if (targetInAttackRange && readyAttack)
+                {
+                    animator.SetBool("Run", false);
+                    Attack(target);
+                }
             }
-            if (playerInSightRange && !guardInSightRange &&!playerInAttackRange)
-            {
-                Chase(player);
+            if (playerInSightRange)
+            {   
+                if (playerInSightRange && !playerInAttackRange)
+                {
+                    Chase(player);
+                }
+                if (playerInAttackRange && readyAttack)
+                {
+                    animator.SetBool("Run", false);
+                    Attack(player);
+                }
+                
             }
-            if ( playerInAttackRange && readyAttack)
+            if (IsAllEnemiesDead())
             {
-                Attack();
-            }
-            if (guardInSightRange && !guard.CompareTag("Dead") && !guardInAttackRange)
-            {
-                Chase(guard);
-            }
-            if (guardInAttackRange && readyAttack)
-            {
-                Attack();
+                isAllEnemiesDead = true;
             }
         }
-        else
-        {
-            targetInSightRange = false;
-            targetInAttackRange = false;
-            playerInSightRange = false;
-            playerInAttackRange = false;
-            guardInSightRange = false;
-            guardInAttackRange = false;
-        }
+
     }
     private void Chase(Transform destination)
     {
@@ -161,28 +207,53 @@ public class AIMutiTarget : MonoBehaviour
         }
 
     }
-
-    private void Attack()
+    private void attack(GameObject enemy)
     {
         animator.SetBool("Run", false);
         audioSource.PlayOneShot(attackSound);
-        agent.SetDestination(transform.position);
-        transform.LookAt(player);
+        agent.SetDestination(enemy.transform.position);
+        transform.LookAt(enemy.transform.position);
         animator.SetTrigger("Attack");
         animator.SetInteger("AttackInDex", Random.Range(0, 2));
         isAttacking = true;
         readyAttack = false;
         StartCoroutine(AttackCooldown());
-        EnemyAreaAttack.SetActive(true);
+    }
+
+    private void Attack(Transform destination)
+    {
+        animator.SetBool("Run", false);
+        audioSource.PlayOneShot(attackSound);
+        agent.SetDestination(destination.transform.position);
+        transform.LookAt(destination);
+        animator.SetTrigger("Attack");
+        animator.SetInteger("AttackInDex", Random.Range(0, 2));
+        isAttacking = true;
+        readyAttack = false;
+        StartCoroutine(AttackCooldown());
     }
 
     private IEnumerator AttackCooldown()
     {
+        yield return new WaitForSeconds(0.5f);
+        EnemyAreaAttack.SetActive(true);
         yield return new WaitForSeconds(0.3f);
         isAttacking = false;
         EnemyAreaAttack.SetActive(false);
         yield return new WaitForSeconds(cooldown);
         readyAttack = true;
 
+    }
+    private bool IsAllEnemiesDead()
+    {
+        GameObject[] enemies = GameObject.FindGameObjectsWithTag("Guard");
+        foreach (GameObject enemy in enemies)
+        {
+            if (enemy.GetComponent<Walkaround>().currentHealth > 0)
+            {
+                return false;
+            }
+        }
+        return true;
     }
 }

@@ -88,16 +88,24 @@ public class PlayerStatus : MonoBehaviour
         }
         audioSource.PlayOneShot(PotionSound);
     }
-    public void AuraHeal()
+    private void OnTriggerEnter(Collider collider)
     {
-        if (currentHealth < 100)
+        if (collider.gameObject.layer == LayerMask.NameToLayer("Heal"))
         {
-            currentHealth += 2;
+            StartCoroutine(AuraHeal());
         }
-        else if (currentHealth >= maxHealth)
-        {
-            currentHealth = maxHealth;
-        }
-        audioSource.PlayOneShot(HealSound);
     }
+    private IEnumerator AuraHeal()
+    {
+        yield return new WaitForSeconds(1);
+        while (currentHealth < maxHealth)
+        {
+            currentHealth += 10;
+            if (currentHealth > maxHealth) currentHealth = maxHealth;
+            yield return new WaitForSeconds(1f);
+            if (currentHealth == maxHealth) break;
+
+        }
+    }
+
 }

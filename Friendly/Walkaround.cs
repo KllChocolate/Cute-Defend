@@ -66,7 +66,7 @@ public class Walkaround : MonoBehaviour
                 {
                     if (enemy.CompareTag("Enemy") && enemy.activeSelf && !enemy.CompareTag("Dead"))
                     {
-                        float distance = Vector2.Distance(transform.position, enemy.transform.position);
+                        float distance = Vector3.Distance(transform.position, enemy.transform.position);
                         if (distance < closestDistance)
                         {
                             closestEnemy = enemy;
@@ -74,31 +74,30 @@ public class Walkaround : MonoBehaviour
                         }
                     }
                 }
-                if (Time.time - lastAttackTime > cooldown && readyAttack)
+                if (closestDistance > attackRange)
                 {
-                    if (closestDistance > attackRange)
+                    agent.SetDestination(closestEnemy.transform.position);
+                    animator.SetBool("Run", true);
+                }
+                else if (closestDistance < attackRange)
+                {
+                    if (readyAttack)
                     {
                         agent.SetDestination(closestEnemy.transform.position);
-                        animator.SetBool("Run", true);
-                    }
-                    else if (closestDistance < attackRange)
-                    {
-                        if (readyAttack)
-                        {
-                            agent.SetDestination(transform.position);
-                            animator.SetBool("Run", false);
-                            Attack(closestEnemy);
-                            transform.LookAt(closestEnemy.transform);
-                        }
-                    }
-                    else
-                    {
-                        agent.SetDestination(transform.position);
                         animator.SetBool("Run", false);
+                        Attack(closestEnemy);
                         transform.LookAt(closestEnemy.transform);
                     }
                 }
+                else
+                {
+                    agent.SetDestination(closestEnemy.transform.position);
+                    animator.SetBool("Run", false);
+                    transform.LookAt(closestEnemy.transform);
+                }
+
             }
+            else animator.SetBool("Run", false);
         }
     }
 
@@ -112,11 +111,13 @@ public class Walkaround : MonoBehaviour
         isAttacking = true;
         readyAttack = false;
         StartCoroutine(ResetAttack());
-        guardAreaAttack.SetActive(true);
+        
     }
 
     private IEnumerator ResetAttack()
     {
+        yield return new WaitForSeconds(0.5f);
+        guardAreaAttack.SetActive(true);
         yield return new WaitForSeconds(0.2f);
         isAttacking = false;
         guardAreaAttack.SetActive(false);
@@ -160,5 +161,6 @@ public class Walkaround : MonoBehaviour
         yield return new WaitForSeconds(3f);
         Destroy(gameObject);
     }
+
 
 }
