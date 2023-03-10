@@ -95,6 +95,13 @@ public class PlayerStatus : MonoBehaviour
             StartCoroutine(AuraHeal());
         }
     }
+    private void OnTriggerExit(Collider collider)
+    {
+        if (collider.gameObject.layer == LayerMask.NameToLayer("Heal"))
+        {
+            StopCoroutine(AuraHeal());
+        }
+    }
     private IEnumerator AuraHeal()
     {
         yield return new WaitForSeconds(1);

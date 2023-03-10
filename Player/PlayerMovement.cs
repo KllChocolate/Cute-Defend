@@ -212,7 +212,6 @@ public class PlayerMovement : MonoBehaviour
         { 
             animator.SetTrigger("Victory");
             StartCoroutine(complete());
-            audioSource.PlayOneShot(winSound);
             Win = true;
         }
         if(Win)
